@@ -226,6 +226,13 @@ label.chk:has(input:checked){background:var(--acc);color:var(--on);border-color:
 .ch polyline,.ch line{pointer-events:none}
 .ch .hit:hover{fill:var(--acc);fill-opacity:.25}
 @media (max-width:900px){.wt{grid-row:auto}}
+.qp{display:inline-block;align-self:flex-start;color:#fff;font:600 13px Barlow,sans-serif;font-style:normal;padding:3px 12px;border-radius:99px}
+.dl{display:flex;align-items:center;gap:8px}
+.dl svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;color:var(--acc);flex:none}
+.ver{margin-top:8px;font-size:12px;color:var(--mute)}
+@keyframes pgin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.pg{animation:pgin .22s ease-out}
+@media (prefers-reduced-motion:reduce){.pg{animation:none}}
 </style>
 </head>
 <body>
@@ -471,14 +478,14 @@ var n=(P.name||'').trim(),ini=n?n.split(/\s+/).map(function(w){return w[0]}).sli
 var h='<div class="prof"><button class="av" data-v="profile" aria-label="Open profile">'+(P.pic?'<img src="'+P.pic+'" alt="Profile photo">':'<span>'+esc(ini)+'</span>')+'</button><div class="nm">'+esc(n||'Your name')+'</div><div class="ct">'+(fl?'<span class="fl">'+fl+'</span> ':'')+esc(P.country||'Add your country')+'</div></div>';
 h+='<div class="st"><div class="stc" role="button" tabindex="0" data-v="profile"><b>'+(ag==null?'–':ag)+'</b><span>Age</span></div><div class="stc" role="button" tabindex="0" data-v="profile"><b>'+esc(P.height?P.height+' cm':'–')+'</b><span>Height</span></div><div class="stc" role="button" tabindex="0" data-v="profile"><b>'+(w!=null?rnd(w,1)+' kg':'–')+'</b><span>Weight</span></div></div><div class="links">';
 NAV.forEach(function(x){h+='<button data-v="'+x[0]+'" aria-current="'+(cur===x[0])+'"><svg viewBox="0 0 24 24" aria-hidden="true">'+IC[x[0]]+'</svg>'+x[1]+'</button>'});
-return h+'</div><button class="hub" data-v="landing">LifeHub</button>'}
+return h+'</div><button class="hub" data-v="landing">LifeHub</button><div class="ver">Version '+VER+'</div>'}
 function render(){
 document.getElementById('app').className='app'+(view==='landing'?' land':'');
 document.getElementById('side').innerHTML=side();
 var v=view.split(':'),id=v[1],a=v[0],h,F={dash:dash,nutrition:nutrition,settings:settings,photos:photos,progress:progress,body:body,workouts:workouts,newprog:newprog,analytics:analytics,goals:goals,profile:profile,landing:landing};
 if(F[a])h=F[a]();else if(a==='part')h=ppage(id);else if(a==='prog')h=prog(id);
-else h='<h1>Upload</h1><p class="sub">Log any other metric here: weight, body fat, sleep and vitals.</p><h2>Log</h2>'+PG.upload.map(block).join('');
-document.getElementById('main').innerHTML=syncBanner()+h}
+else h='<h1>Upload</h1><p class="sub">Log any other metric here: weight, body fat, sleep and vitals.</p>'+csvCard()+'<h2>Log</h2>'+PG.upload.map(block).join('');
+var mm=document.getElementById('main');mm.innerHTML=syncBanner()+h;if(LV!==view){LV=view;mm.classList.remove('pg');void mm.offsetWidth;mm.classList.add('pg')}}
 function tip(el,e){var t=document.getElementById('tip'),h,w=210;
 if(el.classList.contains('hs')){var p=el.getAttribute('data-p'),l=ml(p),c=l[l.length-1],pr=l[l.length-2];h='<b>'+pname(p)+'</b><div class="lab" style="margin:2px 0 6px">'+DESC[bs(p)]+'</div>Current: '+(c?c.v+' cm':'no data')+'<br>Previous: '+(pr?pr.v+' cm':'none')+spark(l.map(function(x){return x.v}))}
 else if(el.hasAttribute('data-ptip')){h=el.getAttribute('data-ptip');w=240}else{h=stip(el.getAttribute('data-tip'));w=270}
@@ -608,23 +615,23 @@ if(vo!=null)add('Cardio fitness',m?(vo-25)/20*100:(vo-20)/18*100,vo);
 var sc=it.length?Math.round(it.reduce(function(a,x){return a+x.v},0)/it.length):null;
 return{it:it,sc:sc,lb:it.length<3?null:sc>=85?'EXCELLENT HEALTH':sc>=70?'GOOD HEALTH':sc>=50?'FAIR HEALTH':'POOR HEALTH'}}
 function bx(cls,go,an,html){return'<div class="dbx '+cls+'" role="button" tabindex="0" data-v="'+go+'"'+(an?' data-an="'+an+'"':'')+'>'+html+'</div>'}
-function dash(){var H=health(),w=curW(),b=bmiOf(),bf=getBf(),bfl=last('body','bf')!=null,t=tot(today()),n=S.ns,sg=sugg(),pr=S.prog.filter(function(x){return x.active})[0],hr=last('vitals','rhr'),sl=avg7('sleep','hours'),st=avg7('vitals','steps'),cat=bf!=null?bfCat(bf):null,ph=physique(b,cat),dk=function(x){return'<div class="dk">'+x+'</div>'},ttl=function(x){return'<div class="lab">'+x+'</div>'};
+function dash(){var H=health(),w=curW(),b=bmiOf(),bf=getBf(),bfl=last('body','bf')!=null,t=tot(today()),n=S.ns,sg=sugg(),pr=S.prog.filter(function(x){return x.active})[0],hr=last('vitals','rhr'),sl=avg7('sleep','hours'),st=avg7('vitals','steps'),cat=bf!=null?bfCat(bf):null,ph=physique(b,cat),dk=function(x){return'<div class="dk">'+x+'</div>'},ttl=function(x,i){return'<div class="lab dl">'+(i?'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICD[i]+'</svg>':'')+x+'</div>'};
 var col=H.sc==null?'var(--mute)':'hsl('+Math.round(H.sc*1.2)+',70%,45%)';
 var h='<h1>Dashboard</h1><p class="sub">'+(P.name?esc(P.name.split(' ')[0])+', here':'Here')+' is where your health stands right now.</p><div class="dgrid">';
-h+=bx('s4 hero','analytics','weight','<svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--line)" stroke-width="10"/><circle cx="60" cy="60" r="50" fill="none" stroke="'+col+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+(H.lb?H.sc*3.14:0)+' 314" transform="rotate(-90 60 60)"/><text x="60" y="68" text-anchor="middle" font-size="30" font-weight="700" fill="currentColor" font-family="Barlow Condensed,sans-serif">'+(H.lb?H.sc:'–')+'</text></svg><div><div class="lab">You are currently in...</div><div class="hl" style="color:'+col+'">'+(H.lb||'NOT ENOUGH DATA')+'</div>'+dk(H.lb?'Score '+H.sc+' out of 100, from '+H.it.length+' health markers':'Log at least three markers (weight, height, sleep, heart rate, steps and more) to see your overall health.')+'<div class="chips">'+H.it.map(function(x){return'<span style="border-color:hsl('+Math.round(x.v*1.2)+',60%,45%)">'+x.n+' '+x.t+'</span>'}).join('')+'</div><div class="dk" data-tip="score" tabindex="0" style="margin-top:6px;text-decoration:underline dotted">ⓘ How is this calculated?</div></div>');
-h+=bx('s2 wt','analytics','weight',ttl('Weight')+'<div class="wfig">'+fig(false,curGet(),true,bf)+'</div><div class="big">'+rnd(w,1)+'<small>kg</small></div>'+(ph?'<b>'+ph+'</b>':'')+dk(ph?'Based on your weight, body fat'+(bfl?'':' estimate')+' and BMI.':'Add your height and weight to describe your physique.'));
+h+=bx('s4 hero','analytics','weight','<svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--line)" stroke-width="10"/><circle cx="60" cy="60" r="50" fill="none" stroke="'+col+'" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+(H.lb?H.sc*3.14:0)+' 314" transform="rotate(-90 60 60)"/><text x="60" y="68" text-anchor="middle" font-size="30" font-weight="700" fill="currentColor" font-family="Barlow Condensed,sans-serif">'+(H.lb?H.sc:'–')+'</text></svg><div><div class="lab dl"><svg viewBox="0 0 24 24" aria-hidden="true">'+ICD.health+'</svg>You are currently in...</div><div class="hl" style="color:'+col+'">'+(H.lb||'NOT ENOUGH DATA')+'</div>'+dk(H.lb?'Score '+H.sc+' out of 100, from '+H.it.length+' health markers':'Log at least three markers (weight, height, sleep, heart rate, steps and more) to see your overall health.')+'<div class="chips">'+H.it.map(function(x){return'<span style="border-color:hsl('+Math.round(x.v*1.2)+',60%,45%)">'+x.n+' '+x.t+'</span>'}).join('')+'</div><div class="dk" data-tip="score" tabindex="0" style="margin-top:6px;text-decoration:underline dotted">ⓘ How is this calculated?</div></div>');
+h+=bx('s2','analytics','weight',ttl('Weight','weight')+'<div class="big">'+rnd(w,1)+'<small>kg</small></div>'+(ph?qp(ph,PHS[ph]||60):'')+dk(ph?'Based on your weight, body fat'+(bfl?'':' estimate')+' and BMI.':'Add your height and weight to describe your physique.'));
 var mc=[['Calories','kcal','kcal','#3b82f6'],['Protein','p','g','#ef4444'],['Fat','f','g','#eab308'],['Carbs','c','g','#22c55e']];
-h+=bx('s2','nutrition','',ttl('Today’s nutrition')+mc.map(function(m){var g=+n[m[1]],v=Math.round(t[m[1]]);return'<div class="dh"><span>'+m[0]+'</span><span class="dk">'+v+(g?' / '+g:'')+' '+m[2]+'</span></div><div class="bar" style="margin:0 0 6px"><i style="width:'+(g?Math.min(100,v/g*100):0)+'%;background:'+m[3]+'"></i></div>'}).join(''));
-h+=bx('s2','analytics','bf',ttl('Body fat')+'<div class="big">'+(bf==null?'–':rnd(bf,1))+'<small>%</small></div>'+(cat?'<b>'+cat+'</b>'+dk(BFC[cat]+(bfl?'':' (Estimated from your tape measurements.)')):dk('Log your body fat in Upload, or add neck, waist and hip measurements for an estimate.')));
+h+=bx('s3','nutrition','',ttl('Today’s nutrition','nutrition')+mc.map(function(m){var g=+n[m[1]],v=Math.round(t[m[1]]);return'<div class="dh"><span>'+m[0]+'</span><span class="dk">'+v+(g?' / '+g:'')+' '+m[2]+'</span></div><div class="bar" style="margin:0 0 6px"><i style="width:'+(g?Math.min(100,v/g*100):0)+'%;background:'+m[3]+'"></i></div>'}).join(''));
+h+=bx('s3','analytics','bf',ttl('Body fat','bodyfat')+'<div class="big">'+(bf==null?'–':rnd(bf,1))+'<small>%</small></div>'+(cat?qp(cat,BFS[cat])+dk(BFC[cat]+(bfl?'':' (Estimated from your tape measurements.)')):dk('Log your body fat in Upload, or add neck, waist and hip measurements for an estimate.')));
 var bc=b==null?null:bmiCat(b);
-h+=bx('s2','analytics','bmi',ttl('BMI')+'<div class="big">'+(b==null?'–':rnd(b,1))+'</div>'+(bc?'<b>'+bc[0]+'</b>'+dk(bc[1]):dk('Add your height in Profile and log your weight.')));
-h+=bx('s2','settings','',ttl('Calories')+'<div class="mrow"><div><div class="big">'+(n.kcal?n.kcal:'–')+'</div>'+dk('Goal')+'</div><div><div class="big">'+(sg?Math.round(sg.td):'–')+'</div>'+dk('TDEE')+'</div></div>'+dk(n.kcal?'kcal per day':'Set a calorie goal in Settings.'));
-h+=bx('s2',pr?'prog:'+pr.id:'workouts','',ttl('Active program')+(pr?'<b style="font-size:20px">'+esc(pr.name)+'</b><div>'+pills(pr)+'</div>'+dk('About '+pr.len+' min per workout')+dk(pr.days.filter(function(d){return d.dow!==''&&d.dow!=null}).sort(function(a,b){return a.dow-b.dow}).map(function(d){return DOW[d.dow].slice(0,3)+': '+esc(d.name)}).join(' · ')||'No weekdays set yet'):'<b>No active program</b>'+dk('Set one as active in Workouts.')));
-h+=bx('s2','analytics','rhr',ttl('Resting heart rate')+'<div class="big">'+(hr==null?'–':hr)+'<small>bpm</small></div>'+dk(hr==null?'Log it in Upload.':hr<60?'Low, common in fit people.':hr<=100?'Within the normal range.':'Above the normal range.'));
-h+=bx('s2','analytics','sleep',ttl('Average sleep')+'<div class="big">'+rnd(sl,1)+'<small>h</small></div>'+dk(sl==null?'Log it in Upload.':sl<6?'Short. Aim for 7 to 9 hours.':sl<7?'Slightly short of the 7 to 9 hour goal.':sl<=9?'In the ideal 7 to 9 hour range.':'On the long side.'));
-h+=bx('s2','analytics','steps',ttl('Average steps')+'<div class="big">'+(st==null?'–':Math.round(st).toLocaleString())+'</div>'+dk(st==null?'Log it in Upload.':st<5000?'Low. Try to build towards 7,000.':st<7000?'Getting there. 7,000 to 10,000 is the target.':'Great, in the 7,000 to 10,000+ range.'));
+h+=bx('s2','analytics','bmi',ttl('BMI','bmi')+'<div class="big">'+(b==null?'–':rnd(b,1))+'</div>'+(bc?qp(bc[0],BMS[bc[0]])+dk(bc[1]):dk('Add your height in Profile and log your weight.')));
+h+=bx('s2','settings','',ttl('Calories','calories')+'<div class="mrow"><div><div class="big">'+(n.kcal?n.kcal:'–')+'</div>'+dk('Goal')+'</div><div><div class="big">'+(sg?Math.round(sg.td):'–')+'</div>'+dk('TDEE')+'</div></div>'+dk(n.kcal?'kcal per day':'Set a calorie goal in Settings.'));
+h+=bx('s2',pr?'prog:'+pr.id:'workouts','',ttl('Active program','program')+(pr?'<b style="font-size:20px">'+esc(pr.name)+'</b><div>'+pills(pr)+'</div>'+dk('About '+pr.len+' min per workout')+dk(pr.days.filter(function(d){return d.dow!==''&&d.dow!=null}).sort(function(a,b){return a.dow-b.dow}).map(function(d){return DOW[d.dow].slice(0,3)+': '+esc(d.name)}).join(' · ')||'No weekdays set yet'):'<b>No active program</b>'+dk('Set one as active in Workouts.')));
+h+=bx('s2','analytics','rhr',ttl('Resting heart rate','rhr')+'<div class="big">'+(hr==null?'–':hr)+'<small>bpm</small></div>'+(hr==null?'':rq(hr))+dk(hr==null?'Log it in Upload.':hr<60?'Low, common in fit people.':hr<=100?'Within the normal range.':'Above the normal range.'));
+h+=bx('s2','analytics','sleep',ttl('Average sleep','sleep')+'<div class="big">'+rnd(sl,1)+'<small>h</small></div>'+(sl==null?'':sq(sl))+dk(sl==null?'Log it in Upload.':sl<6?'Short. Aim for 7 to 9 hours.':sl<7?'Slightly short of the 7 to 9 hour goal.':sl<=9?'In the ideal 7 to 9 hour range.':'On the long side.'));
+h+=bx('s2','analytics','steps',ttl('Average steps','steps')+'<div class="big">'+(st==null?'–':Math.round(st).toLocaleString())+'</div>'+(st==null?'':tq(st))+dk(st==null?'Log it in Upload.':st<5000?'Low. Try to build towards 7,000.':st<7000?'Getting there. 7,000 to 10,000 is the target.':'Great, in the 7,000 to 10,000+ range.'));
 var ms=function(l,v){return'<div><div class="big">'+(v==null?'–':rnd(v,1))+'<small>cm</small></div>'+dk(l)+'</div>'},bi=[rv('rbicep'),rv('lbicep')].filter(function(x){return x!=null});
-h+=bx('s6','body','',ttl('Measurements')+'<div class="mrow">'+ms('Waist',rv('waist'))+ms('Chest',rv('chest'))+ms('Bicep (right)',rv('rbicep'))+ms('Bicep (left)',rv('lbicep'))+'</div>');
+h+=bx('s6','body','',ttl('Measurements','measure')+'<div class="mrow">'+ms('Waist',rv('waist'))+ms('Chest',rv('chest'))+ms('Bicep (right)',rv('rbicep'))+ms('Bicep (left)',rv('lbicep'))+'</div>');
 return h+'</div>'}
 document.addEventListener('keydown',function(e){var x=e.target.closest&&e.target.closest('.dbx');if(x&&e.target===x&&(e.key==='Enter'||e.key===' ')){e.preventDefault();x.click()}});
 document.addEventListener('change',function(e){var t=e.target;if(t.id==='pge'){PGE=+t.value;render()}});
@@ -670,7 +677,6 @@ return h}
 function block(k){var t=T[k],h='<div class="sec"><h3>'+t.n+'</h3><form data-k="'+k+'"><label>Date<input type="date" name="date" value="'+today()+'" required></label>';
 t.f.forEach(function(f){h+='<label>'+f[1]+(f[2]?' ('+f[2]+')':'')+'<input name="'+f[0]+'" type="number" step="any" inputmode="decimal"></label>'});
 h+='<button class="add" type="submit">Add entry</button></form>';
-var s=series(k,t.m);if(s.length>1)h+='<div class="card" style="margin-bottom:10px"><div class="lab">Recent trend</div>'+spark(s)+'</div>';
 var rows=list(k).reverse();
 if(!rows.length)return h+'<p class="empty">No entries yet.</p></div>';
 h+='<div class="card uscroll"><table><tr><th>Date</th>'+t.f.map(function(f){return'<th>'+f[1]+'</th>'}).join('')+'<th></th></tr>';
@@ -720,6 +726,38 @@ if(a==='uee')UE=b.getAttribute('data-a');else if(a==='uec')UE=null;else{var t=T[
 render()},true);
 document.addEventListener('change',function(e){var t=e.target;if(t.name!=='opt'||!t.form)return;var c=t.form.querySelectorAll('input[name=opt]:checked');if(!c.length){t.checked=true;return}t.form.setAttribute('data-o',Array.prototype.map.call(c,function(x){return x.value}).join(' '))});
 document.addEventListener('keydown',function(e){var x=e.target.closest&&e.target.closest('.stc');if(x&&e.target===x&&(e.key==='Enter'||e.key===' ')){e.preventDefault();x.click()}});
+var VER='1.0.2',LV=null,CSVMSG='';
+var ICD={health:'<path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',weight:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 10a4 4 0 0 1 8 0M12 10l2-2"/>',nutrition:IC.nutrition,bodyfat:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',bmi:'<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l4-5"/><path d="M4 19h16"/>',calories:'<path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3-1-3 0-6 1-9z"/>',program:IC.workouts,rhr:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',sleep:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',steps:'<path d="M3 17h18v2H3zM4 17V9l5 2 3-3 4 3 3 1v5"/>',measure:'<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/>'};
+function qp(t,s){return'<span class="qp" style="background:hsl('+Math.round(Math.max(0,Math.min(100,s))*1.2)+',68%,34%)">'+esc(t)+'</span>'}
+var PHS={'Very lean and muscular':95,'Lean and athletic':95,'Muscular and fit':90,'Solid and fit':80,'Fit and toned':90,'Average, healthy build':70,'Slight build':50,'Heavy build with moderate body fat':45,'Solid build with some excess fat':50,'Average build':65,'Heavier build':40,'Large build':30,'Carrying some excess body fat':40,'Heavier build with excess body fat':25,'High body fat, with gradual fat loss the priority':10};
+var BFS={Essential:50,Athlete:100,Fitness:90,Acceptable:65,Overweight:35,Obesity:10};
+var BMS={'Underweight':40,'Healthy weight':100,'Overweight':50,'Obesity (class I)':25,'Obesity (class II)':12,'Obesity (class III)':0};
+function rq(h){return h<=55?qp('Excellent',100):h<=70?qp('Good',85):h<=85?qp('Fair',60):h<=100?qp('Elevated',35):qp('High',10)}
+function sq(h){return h<6?qp('Short',15):h<7?qp('Slightly short',45):h<=9?qp('Ideal',100):qp('Long',65)}
+function tq(s){return s<5000?qp('Low',25):s<7000?qp('Fair',55):s<10000?qp('Good',85):qp('Great',100)}
+var CSVF={date:['date','day','datetime','timestamp'],weight:['weight','weightkg','bodyweight','bodymass'],bf:['bf','bodyfat','bodyfatpercent','bodyfatpercentage','fat'],hours:['hours','sleep','sleephours','sleeplength','sleepduration','hoursslept'],q:['quality','sleepquality'],rhr:['rhr','restingheartrate','restinghr'],hrv:['hrv','heartratevariability'],rest:['rest','restingenergy','bmr','basalenergy'],burn:['burn','activeenergy','active','activecalories','caloriesburned'],vo2:['vo2','vo2max','cardiofitness'],hrr:['hrr','cardiorecovery','heartraterecovery'],steps:['steps','stepcount']};
+var CSVG={body:['weight','bf'],sleep:['hours','q'],vitals:['rhr','hrv','rest','burn','vo2','hrr','steps']};
+function parseCSV(t){t=t.replace(/^\uFEFF/,'');var first=t.split(/\r?\n/)[0]||'',dl=[',',';','\t'].map(function(d){return[d,first.split(d).length]}).sort(function(a,b){return b[1]-a[1]})[0][0],rows=[],r=[],f='',q=false;
+for(var i=0;i<t.length;i++){var c=t[i];if(q){if(c==='"'&&t[i+1]==='"'){f+='"';i++}else if(c==='"')q=false;else f+=c}else if(c==='"')q=true;else if(c===dl){r.push(f);f=''}else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;r.push(f);f='';if(r.some(function(x){return x.trim()!==''}))rows.push(r);r=[]}else f+=c}
+r.push(f);if(r.some(function(x){return x.trim()!==''}))rows.push(r);return rows}
+function csvDate(s){s=(s||'').trim();var m=/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/.exec(s),y,mo,d;if(m){y=+m[1];mo=+m[2];d=+m[3]}else{m=/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/.exec(s);if(!m){var x=new Date(s);return isNaN(x)?null:ds(x)}d=+m[1];mo=+m[2];y=+m[3];if(y<100)y+=2000;if(mo>12&&d<=12){var z=d;d=mo;mo=z}}
+var dt=new Date(y,mo-1,d);return dt.getMonth()===mo-1&&dt.getDate()===d?ds(dt):null}
+function importCsv(text){var rows=parseCSV(text);if(rows.length<2){CSVMSG='That file has no data rows.';return}
+var hd=rows[0].map(function(h){return h.replace(/\(.*?\)/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')}),col={};
+Object.keys(CSVF).forEach(function(k){var i=hd.findIndex(function(h){return CSVF[k].indexOf(h)>-1});if(i>-1)col[k]=i});
+if(col.date==null){CSVMSG='No date column found. Add a header row with a column named "date".';return}
+var added=0,upd=0,bad=0,cnt={},id=Date.now();
+rows.slice(1).forEach(function(r){var d=csvDate(r[col.date]);if(!d){bad++;return}
+Object.keys(CSVG).forEach(function(g){var vals={},any=false;CSVG[g].forEach(function(k){if(col[k]==null)return;var v=(r[col[k]]||'').trim();v=/^-?\d+,\d{1,2}$/.test(v)?v.replace(',','.'):v.replace(/,/g,'');var n=parseFloat(v);if(v!==''&&isFinite(n)){vals[k]=String(n);any=true}});
+if(!any)return;var arr=S[g]=S[g]||[],en=arr.filter(function(x){return x.date===d})[0];
+if(en){Object.assign(en,vals);upd++}else{var o={id:id++,date:d};T[g].f.forEach(function(f){o[f[0]]=vals[f[0]]||''});arr.push(o);added++}
+Object.keys(vals).forEach(function(k){cnt[k]=(cnt[k]||0)+1})})});
+save();CSVMSG='Imported '+(rows.length-1-bad)+' rows: '+added+' new entries and '+upd+' updated.'+(bad?' '+bad+' rows skipped (unreadable date).':'')+(Object.keys(cnt).length?' Fields: '+Object.keys(cnt).map(function(k){return k+' ('+cnt[k]+')'}).join(', ')+'.':' No recognised data columns were found.')}
+function csvCard(){return'<div class="card" style="margin-bottom:12px"><h3>Import from CSV</h3><p class="sub" style="margin:0 0 10px">Use a header row with a <b>date</b> column plus any of: weight, body fat, sleep hours, sleep quality, resting HR, HRV, resting energy, active energy, VO2, cardio recovery, steps. Dates can be yyyy-mm-dd or dd/mm/yyyy. A row with a date you already logged updates that day.</p><div class="row" style="margin:0"><label>Choose a CSV file<input type="file" id="csv" accept=".csv,text/csv"></label><button class="ghost" data-act="csvtpl">Download template</button></div>'+(CSVMSG?'<p class="hint" style="margin:10px 0 0">'+esc(CSVMSG)+'</p>':'')+'</div>'}
+async function dlFile(nm,txt,mime){try{var dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(dl){await dl.save({filename:nm,data:txt});return}}catch(e){if(e&&e.code==='declined')return}
+var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:mime}));a.download=nm;document.body.appendChild(a);a.click();a.remove()}
+document.addEventListener('click',function(e){var b=e.target.closest('[data-act="csvtpl"]');if(!b)return;e.stopImmediatePropagation();dlFile('lifehub-template.csv','date,weight,body fat,sleep hours,sleep quality,resting hr,hrv,resting energy,active energy,vo2,cardio recovery,steps\n2026-10-01,80.5,18,7.5,4,58,52,1800,500,42,22,8200\n','text/csv')},true);
+document.addEventListener('change',function(e){var t=e.target;if(t.id!=='csv'||!t.files[0])return;var r=new FileReader();r.onload=function(){try{importCsv(String(r.result))}catch(x){CSVMSG='Could not read that file: '+x.message}render()};r.readAsText(t.files[0])});
 var SY={st:'local',mode:'',ts:0,rts:0,msg:'',db:false,uid:null,busy:false,pend:false,timer:null,defer:false,pulling:false,imgs:{},poll:null,dev:Math.random().toString(36).slice(2,8)},CL=null,SBC={url:'',key:''},SBS=null;
 function lsr(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsw(k,v){try{localStorage.setItem(k,v)}catch(e){}}
