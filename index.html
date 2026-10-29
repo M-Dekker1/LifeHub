@@ -296,6 +296,7 @@ tr.hl2 td{background:color-mix(in srgb,var(--acc) 18%,transparent)}
 .acell.nf{margin-left:44px}
 .wrow{gap:36px}
 code{background:var(--bg);padding:1px 6px;border-radius:6px}
+.kvl{display:flex;gap:8px;align-items:center;margin:6px 0;word-break:break-all;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -763,7 +764,7 @@ if(a==='uee')UE=b.getAttribute('data-a');else if(a==='uec')UE=null;else{var t=T[
 render()},true);
 document.addEventListener('change',function(e){var t=e.target;if(t.name!=='opt'||!t.form)return;var c=t.form.querySelectorAll('input[name=opt]:checked');if(!c.length){t.checked=true;return}t.form.setAttribute('data-o',Array.prototype.map.call(c,function(x){return x.value}).join(' '))});
 document.addEventListener('keydown',function(e){var x=e.target.closest&&e.target.closest('.stc');if(x&&e.target===x&&(e.key==='Enter'||e.key===' ')){e.preventDefault();x.click()}});
-var VER='1.3.1',LV=null,CSVMSG='';
+var VER='1.4.0',LV=null,CSVMSG='';
 var ICD={health:'<path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',weight:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 10a4 4 0 0 1 8 0M12 10l2-2"/>',nutrition:IC.nutrition,bodyfat:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',bmi:'<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l4-5"/><path d="M4 19h16"/>',calories:'<path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3-1-3 0-6 1-9z"/>',program:IC.workouts,rhr:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',sleep:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',steps:'<path d="M3 17h18v2H3zM4 17V9l5 2 3-3 4 3 3 1v5"/>',measure:'<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/>'};
 function qp(t,s){return'<span class="qp" style="background:hsl('+Math.round(Math.max(0,Math.min(100,s))*1.2)+',68%,34%)">'+esc(t)+'</span>'}
 var PHS={'Very lean and muscular':95,'Lean and athletic':95,'Muscular and fit':90,'Solid and fit':80,'Fit and toned':90,'Average, healthy build':70,'Slight build':50,'Heavy build with moderate body fat':45,'Solid build with some excess fat':50,'Average build':65,'Heavier build':40,'Large build':30,'Carrying some excess body fat':40,'Heavier build with excess body fat':25,'High body fat, with gradual fat loss the priority':10};
@@ -1171,6 +1172,50 @@ if(k==='fy-nwadd'){var d=v('date'),nv=+v('net');f.nw=f.nw.filter(function(x){ret
 save();render()},true);
 document.addEventListener('change',function(e){var t=e.target,f=F();if(t.hasAttribute('data-fyasset')){f.assets.forEach(function(x){if(x.id==t.getAttribute('data-fyasset'))x.value=+t.value||0});save();render()}else if(t.hasAttribute('data-fytu')){f.taxUrl=t.value.trim();save()}});
 if(SPACE==='finance'&&lsr('lifehub-taxchk')!==today()&&!(window.claude&&window.claude.use)&&/^https?:/.test(location.protocol))setTimeout(function(){fetchTax(false)},1500);
+var HK={key:undefined,msg:'',busy:false};
+var HKSQL=['create table if not exists public.lifehub_keys (','  user_id uuid primary key default auth.uid() references auth.users(id) on delete cascade,','  key text not null unique',');','alter table public.lifehub_keys enable row level security;','drop policy if exists "own key" on public.lifehub_keys;','create policy "own key" on public.lifehub_keys for all using (auth.uid() = user_id) with check (auth.uid() = user_id);','','create table if not exists public.lifehub_inbox (','  id bigint generated always as identity primary key,','  user_id uuid not null references auth.users(id) on delete cascade,','  day date not null,','  payload jsonb not null,','  created_at timestamptz not null default now()',');','alter table public.lifehub_inbox enable row level security;','drop policy if exists "inbox select" on public.lifehub_inbox;','drop policy if exists "inbox delete" on public.lifehub_inbox;','create policy "inbox select" on public.lifehub_inbox for select using (auth.uid() = user_id);','create policy "inbox delete" on public.lifehub_inbox for delete using (auth.uid() = user_id);','','create or replace function public.lifehub_ingest(key_in text, day_in date, payload_in jsonb)','returns void language plpgsql security definer set search_path = public as $$','declare uid uuid;','begin','  select user_id into uid from public.lifehub_keys where key = key_in;','  if uid is null then raise exception \'invalid key\'; end if;','  insert into public.lifehub_inbox (user_id, day, payload) values (uid, day_in, payload_in);','end $$;','grant execute on function public.lifehub_ingest(text, date, jsonb) to anon, authenticated;'].join('\n');
+var HMAP={rest:['vitals','rest'],active:['vitals','burn'],rhr:['vitals','rhr'],hrv:['vitals','hrv'],vo2:['vitals','vo2'],hrr:['vitals','hrr'],steps:['vitals','steps'],weight:['body','weight'],bf:['body','bf']};
+function hcfg(){S.health=S.health||{wu:'kg',au:'cm'};return S.health}
+function hNorm(k,v){var c=hcfg();v=+v;if(!isFinite(v)||v<=0)return null;if(k==='bf'&&v<=1)v*=100;if(k==='weight'&&c.wu==='lb')v*=.45359237;if(k==='waist'&&c.au==='in')v*=2.54;var dp={steps:0,rest:0,active:0,rhr:0,hrr:0,hrv:1,vo2:1,weight:2,bf:1,waist:1}[k];if(dp==null)dp=1;return String(Math.round(v*Math.pow(10,dp))/Math.pow(10,dp))}
+function hid(){return Date.now()+Math.floor(Math.random()*100000)}
+async function importInbox(silent){if(SY.mode!=='sb'||!SY.db||HK.busy)return;HK.busy=true;var ui=!silent;
+try{var rows=await sbf('/rest/v1/lifehub_inbox?select=id,day,payload&order=id.asc&limit=200&user_id=eq.'+SY.uid);
+if(!rows||!rows.length){if(!silent)HK.msg='No new Apple Health data is waiting.';return}
+S.hk=S.hk||{};var n=0,fields=0;S.m=S.m||{};
+rows.forEach(function(r){var p=r.payload||{};
+Object.keys(HMAP).forEach(function(k){var t=HMAP[k],g=t[0],f=t[1],v=hNorm(k,p[k]);if(v==null)return;var arr=S[g]=S[g]||[],en=arr.filter(function(x){return x.date===r.day})[0],key=g+'|'+r.day+'|'+f;
+if(!en){var o={id:hid(),date:r.day};T[g].f.forEach(function(q){o[q[0]]=''});o[f]=v;arr.push(o);S.hk[key]=1;fields++}else if(en[f]===''||en[f]==null||S.hk[key]){en[f]=v;S.hk[key]=1;fields++}});
+var w=hNorm('waist',p.waist);if(w!=null){var wl=S.m.waist=S.m.waist||[],ew=wl.filter(function(x){return x.date===r.day})[0],kw='m|'+r.day+'|waist';if(!ew){wl.push({id:hid(),date:r.day,v:+w});S.hk[kw]=1;fields++}else if(S.hk[kw]){ew.v=+w;fields++}}
+n++});
+await sbf('/rest/v1/lifehub_inbox?id=in.('+rows.map(function(r){return r.id}).join(',')+')',{method:'DELETE',headers:{Prefer:'return=minimal'}});
+save();ui=true;HK.msg='Imported '+n+' day'+(n>1?'s':'')+' of Apple Health data ('+fields+' values) at '+new Date().toLocaleTimeString()+'.'}
+catch(e){ui=true;HK.msg='Apple Health import failed: '+nice(e)}
+finally{HK.busy=false;if(ui)syncUi()}}
+var _poll=poll;poll=async function(){await _poll();importInbox(true)};
+async function hkLoadKey(){try{var r=await sbf('/rest/v1/lifehub_keys?select=key&user_id=eq.'+SY.uid);HK.key=r&&r[0]?r[0].key:null;HK.msg=''}catch(e){HK.key=null;HK.msg='Could not read your key. Have you run the Apple Health SQL in Supabase? ('+nice(e)+')'}syncUi()}
+async function hkMake(){var a=new Uint8Array(20);crypto.getRandomValues(a);var k=Array.prototype.map.call(a,function(b){return('0'+b.toString(16)).slice(-2)}).join('');
+try{await sbf('/rest/v1/lifehub_keys?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{user_id:SY.uid,key:k}])});HK.key=k;HK.msg='New key created. Put it in your Shortcut.'}
+catch(e){HK.msg='Could not create a key: '+nice(e)+' Run the Apple Health SQL in Supabase first.'}syncUi()}
+function cp(t){return'<button class="ghost" data-act="hk-copy" data-a="'+esc(t)+'">Copy</button>'}
+function appleCard(){var h='<h2>Apple Health</h2><div class="card">',c=hcfg();
+if(SY.mode!=='sb'||!SY.db)return h+'<p class="sub" style="margin:0">Importing from Apple Health needs your own Supabase connection. Set that up in the Sync section below, then come back here.</p></div>';
+h+='<p class="sub" style="margin:0 0 10px">Send yesterday’s Health data from an iPhone Shortcut straight into LifeHub. It lands in a private inbox in your Supabase project and is added to Upload the next time you open LifeHub. Values you typed in yourself are never overwritten.</p>';
+h+='<div class="row" style="margin-top:0"><label>Weight arrives in<select id="hkwu">'+sel([['kg','Kilograms'],['lb','Pounds']],c.wu)+'</select></label><label>Waist arrives in<select id="hkau">'+sel([['cm','Centimetres'],['in','Inches']],c.au)+'</select></label><button class="add" data-act="hk-import">Import now</button></div>';
+if(HK.msg)h+='<p class="hint" style="margin:0 0 10px">'+esc(HK.msg)+'</p>';
+h+='<details><summary>1. Run this SQL once in Supabase (SQL Editor)</summary><pre class="sql">'+esc(HKSQL)+'</pre><button class="ghost" data-act="hk-copy" data-a="'+esc(HKSQL)+'">Copy SQL</button></details>';
+h+='<h3 style="margin:14px 0 6px">2. Your key</h3>';
+if(HK.key===undefined)h+='<button class="ghost" data-act="hk-show">Show my key</button>';
+else if(HK.key===null)h+='<p class="sub" style="margin:0 0 8px">No key yet.</p><button class="add" data-act="hk-make">Create my key</button>';
+else h+='<div class="kvl"><code>'+esc(HK.key)+'</code>'+cp(HK.key)+'</div><button class="ghost" data-act="hk-make">Create a new key (the old one stops working)</button>';
+var u=sbu()+'/rest/v1/rpc/lifehub_ingest';
+h+='<h3 style="margin:14px 0 6px">3. Change the last step of your Shortcut</h3><ol class="sub" style="margin:0;padding-left:20px"><li>Keep the steps that collect yesterday’s data. Remove the Google Form link and its “Open URL” step.</li><li>Add a <b>Get contents of URL</b> action:<div class="kvl"><code>'+esc(u)+'</code>'+cp(u)+'</div>Method: <b>POST</b>. Headers (all three):<div class="kvl"><code>apikey: '+esc(SBC.key)+'</code>'+cp(SBC.key)+'</div><div class="kvl"><code>Authorization: Bearer '+esc(SBC.key)+'</code>'+cp('Bearer '+SBC.key)+'</div><code>Content-Type: application/json</code></li><li>Request Body: <b>JSON</b>, with these fields:<ul><li><b>key_in</b> (Text): your key above</li><li><b>day_in</b> (Text): yesterday’s date formatted as <code>yyyy-MM-dd</code> (use “Format Date”, custom)</li><li><b>payload_in</b> (Dictionary) containing any of these Numbers: <code>rest</code> (resting energy), <code>active</code> (active energy), <code>weight</code>, <code>bf</code> (body fat), <code>waist</code>, <code>rhr</code>, <code>hrv</code>, <code>vo2</code>, <code>hrr</code> (heart rate recovery), <code>steps</code></li></ul></li><li>BMI and lean body mass don’t need sending, because LifeHub works them out from your weight, height and body fat.</li><li>Run it once and tap <b>Import now</b> above to check. Then keep your existing daily automation.</li></ol>';
+h+='<p class="sub" style="margin:10px 0 0">Example body: <code>{"key_in":"…","day_in":"2026-10-28","payload_in":{"rest":1750,"active":612,"weight":81.2,"bf":18.4,"waist":84,"rhr":57,"hrv":48,"vo2":43,"hrr":24,"steps":9120}}</code></p></div>';return h}
+var _settings1=settings;settings=function(){return _settings1().replace('<h2>Sync</h2>',appleCard().replace(/\$/g,'$$$$')+'<h2>Sync</h2>')};
+document.addEventListener('click',function(e){var b=e.target.closest('[data-act^="hk-"]');if(!b)return;e.stopImmediatePropagation();var a=b.getAttribute('data-act');
+if(a==='hk-show')hkLoadKey();else if(a==='hk-make')hkMake();else if(a==='hk-import')importInbox(false);
+else if(a==='hk-copy'){var t=b.getAttribute('data-a');try{navigator.clipboard.writeText(t);HK.msg='Copied to your clipboard.'}catch(x){HK.msg='Could not copy automatically. Select the text and copy it.'}syncUi()}},true);
+document.addEventListener('change',function(e){var t=e.target;if(t.id==='hkwu'){hcfg().wu=t.value;save()}else if(t.id==='hkau'){hcfg().au=t.value;save()}});
+
 document.addEventListener('keydown',function(e){var x=e.target.closest&&e.target.closest('.acell');if(x&&e.target===x&&(e.key==='Enter'||e.key===' ')){e.preventDefault();x.click()}});
 var SY={st:'local',mode:'',ts:0,rts:0,msg:'',db:false,uid:null,busy:false,pend:false,timer:null,defer:false,pulling:false,imgs:{},poll:null,dev:Math.random().toString(36).slice(2,8)},CL=null,SBC={url:'',key:''},SBS=null;
 function lsr(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -1224,7 +1269,7 @@ async function syncStart(){try{var m=await getMeta(),linked=lsr('lifehub-linked'
 if(m){SY.rts=m.ts;if(!linked&&hasData()&&SY.ts!==m.ts){SY.st='conflict';SY.msg='Cloud data was found, and this device also has data.'}else if(m.ts>SY.ts)await syncPull(true);else if(SY.ts>m.ts)await syncPush();else{SY.st='ok';SY.msg='Synced';lsw('lifehub-linked',SY.uid)}}
 else if(hasData()){SY.ts=SY.ts||Date.now();await syncPush()}else{SY.st='ok';SY.msg='Cloud sync is on. Nothing saved yet.';lsw('lifehub-linked',SY.uid)}}
 catch(e){SY.st='err';SY.msg='Cloud sync could not start: '+nice(e)}syncUi()}
-async function sbBegin(){SY.mode='sb';SY.uid=SBS.uid;SY.db=true;SY.msg='Connecting…';clearInterval(SY.poll);SY.poll=setInterval(poll,30000);await syncStart()}
+async function sbBegin(){SY.mode='sb';SY.uid=SBS.uid;SY.db=true;SY.msg='Connecting…';clearInterval(SY.poll);SY.poll=setInterval(poll,30000);await syncStart();importInbox(true)}
 async function poll(){if(SY.mode!=='sb'||!SY.db||SY.busy||SY.pulling||SY.st==='conflict'||typing())return;try{var m=await getMeta();if(m&&m.dev!==SY.dev&&m.ts>SY.ts)await syncPull(false)}catch(e){}}
 async function syncInit(){var cl=window.claude;
 if(cl&&cl.use){try{var db=await cl.use('db'),us=await cl.use('user'),id=db&&us?await us.id():null;
