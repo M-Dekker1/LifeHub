@@ -478,6 +478,24 @@ aside:hover .lvl,aside:has(:focus-visible) .lvl{opacity:1;max-height:52px;margin
 .xc span{position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:10px;color:var(--mute)}
 @media (max-width:900px){.lvg{grid-template-columns:1fr}}
 @media (max-width:820px){aside .lvl{opacity:1;max-height:52px;margin-top:10px}aside .lvb{left:calc(50% + 28px);top:63px}}
+/* v2.1.3 layout fixes */
+.ch{max-width:760px;margin:0 auto}
+.anl{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;align-items:start;margin-top:12px}
+.anr{display:flex;flex-direction:column;gap:12px}
+.anr>.card{margin-top:0!important}
+@media (max-width:900px){.anl{grid-template-columns:1fr}}
+aside .pt{overflow:hidden;min-width:0}
+@media (min-width:821px){
+aside .prof{flex-direction:row;justify-content:flex-start;align-items:center;gap:12px;height:40px}
+aside .av,aside:hover .av,aside:has(:focus-visible) .av{width:40px;height:40px;margin:0 0 0 4px}
+aside .av>*,aside:hover .av>*,aside:has(:focus-visible) .av>*{font-size:15px}
+aside .pt{opacity:0;text-align:left;transition:opacity .12s ease}
+aside:hover .pt,aside:has(:focus-visible) .pt{opacity:1}
+aside .pt .nm,aside .pt .ct{opacity:1;max-height:none}
+aside .prof .lvb,aside:hover .prof .lvb,aside:has(:focus-visible) .prof .lvb{left:34px;top:22px}
+aside .links{order:1;margin-top:16px}aside .lvl{order:2}aside .st{order:3}aside .hub{order:4}aside .ver{order:5}
+}
+@media (max-width:820px){aside .pt{opacity:1;text-align:center}}
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/lucide@0.454.0/dist/umd/lucide.min.js" onload="try{render()}catch(e){}"></script>
 </head>
@@ -557,16 +575,16 @@ card('Current',c==null?'–':c,'cm')+card('Previous',pr==null?'–':pr,'cm')+car
 if(l.length){h+='<div class="card scroll"><table><tr><th>Date</th><th>cm</th><th></th></tr>';l.slice().reverse().slice(0,15).forEach(function(e){h+='<tr><td>'+e.date+'</td><td>'+e.v+'</td><td><button class="x" data-delm="'+p+'|'+e.id+'" aria-label="Delete">×</button></td></tr>'});h+='</table></div>'}
 return h}
 function chart(pts,un,ma){if(!pts.length)return'<p class="empty">No data in this period yet. Log entries to see the graph.</p>';
-var W=640,Ht=260,L=46,Rr=14,Tp=14,B=28,t=pts.map(function(p){return new Date(p[0]).getTime()}),v=pts.map(function(p){return p[1]}),t0=Math.min.apply(0,t),t1=Math.max.apply(0,t);if(t1===t0)t1=t0+864e5;
-var mn=Math.min.apply(0,v),mx=Math.max.apply(0,v),pd=(mx-mn||1)*.12;mn-=pd;mx+=pd;
+var W=640,Ht=240,Rr=14,Tp=14,B=28,t=pts.map(function(p){return new Date(p[0]).getTime()}),v=pts.map(function(p){return p[1]}),t0=Math.min.apply(0,t),t1=Math.max.apply(0,t);if(t1===t0)t1=t0+864e5;
+var mn=Math.min.apply(0,v),mx=Math.max.apply(0,v),pd=(mx-mn||1)*.12;mn-=pd;mx+=pd;var axf=function(v){var a=Math.abs(v),r=a>=1e6?rnd(v/1e6,1)+'M':a>=1e4?Math.round(v/1e3)+'k':String(rnd(v,1));return(un==='$'?(v<0?'-$':'$')+r.replace('-',''):r)};var L=Math.max(40,Math.max(axf(mn).length,axf(mx).length,axf((mn+mx)/2).length)*6.4+14);
 var X=function(a){return L+(a-t0)/(t1-t0)*(W-L-Rr)},Yy=function(a){return Tp+(1-(a-mn)/(mx-mn))*(Ht-Tp-B)};
 var pl=pts.map(function(p,i){return X(t[i]).toFixed(1)+','+Yy(p[1]).toFixed(1)}).join(' ');
 var s='<svg class="ch" viewBox="0 0 '+W+' '+Ht+'" role="img" aria-label="Graph over time">';
-[mn,(mn+mx)/2,mx].forEach(function(g){s+='<line x1="'+L+'" x2="'+(W-Rr)+'" y1="'+Yy(g).toFixed(1)+'" y2="'+Yy(g).toFixed(1)+'" stroke="var(--line)"/><text x="'+(L-6)+'" y="'+(Yy(g)+4).toFixed(1)+'" text-anchor="end">'+rnd(g,1)+'</text>'});
+[mn,(mn+mx)/2,mx].forEach(function(g){s+='<line x1="'+L+'" x2="'+(W-Rr)+'" y1="'+Yy(g).toFixed(1)+'" y2="'+Yy(g).toFixed(1)+'" stroke="var(--line)"/><text x="'+(L-6)+'" y="'+(Yy(g)+4).toFixed(1)+'" text-anchor="end">'+axf(g)+'</text>'});
 s+='<text x="'+L+'" y="'+(Ht-8)+'">'+pts[0][0]+'</text><text x="'+(W-Rr)+'" y="'+(Ht-8)+'" text-anchor="end">'+pts[pts.length-1][0]+'</text>';
 s+='<polyline fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round" points="'+pl+'"/>';
 if(ma&&pts.length>2){var mp=pts.map(function(p,i){var w=[];for(var j=0;j<=i;j++)if(t[i]-t[j]<=6*864e5)w.push(v[j]);return X(t[i]).toFixed(1)+','+Yy(w.reduce(function(a,b){return a+b},0)/w.length).toFixed(1)}).join(' ');s+='<polyline fill="none" stroke="var(--ma)" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" opacity=".9" points="'+mp+'"/>'}
-pts.forEach(function(p,i){var px=X(t[i]).toFixed(1),py=Yy(p[1]).toFixed(1);if(pts.length<=60)s+='<circle cx="'+px+'" cy="'+py+'" r="3.5" fill="var(--acc)" style="pointer-events:none"/>';if(pts.length<=600)s+='<circle class="hit" cx="'+px+'" cy="'+py+'" r="9" fill="transparent" data-ptip="'+p[0]+': '+rnd(p[1],1)+(un?' '+un:'')+'"/>'});
+pts.forEach(function(p,i){var px=X(t[i]).toFixed(1),py=Yy(p[1]).toFixed(1);if(pts.length<=60)s+='<circle cx="'+px+'" cy="'+py+'" r="3.5" fill="var(--acc)" style="pointer-events:none"/>';if(pts.length<=600)s+='<circle class="hit" cx="'+px+'" cy="'+py+'" r="9" fill="transparent" data-ptip="'+p[0]+': '+(un==='$'?fm(p[1]):rnd(p[1],1)+(un?' '+un:''))+'"/>'});
 if(pts.length>1){var n=pts.length,xs=t.map(function(a){return a/864e5}),mx2=xs.reduce(function(a,b){return a+b},0)/n,my=v.reduce(function(a,b){return a+b},0)/n,nu=0,de=0;xs.forEach(function(x,i){nu+=(x-mx2)*(v[i]-my);de+=(x-mx2)*(x-mx2)});var m=de?nu/de:0,f=function(a){return my+m*(a/864e5-mx2)};
 s+='<line x1="'+X(t0).toFixed(1)+'" y1="'+Yy(f(t0)).toFixed(1)+'" x2="'+X(t1).toFixed(1)+'" y2="'+Yy(f(t1)).toFixed(1)+'" stroke="var(--acc2)" stroke-width="2.5" stroke-dasharray="7 5"/>'}
 return s+'</svg>'}
@@ -712,7 +730,7 @@ return'<svg viewBox="0 0 300 640" role="group" aria-label="Body outline">'+defs+
 function body(){return'<div class="dh"><h1>Body</h1><button class="ghost" data-v="photos">Progress photos</button></div><p class="sub">Hover a marker to preview a measurement. Click it for the full history.</p><div class="two"><div class="fig"><button class="ghost vt" data-act="bv">'+(BV==='front'?'Side view':'Front view')+'</button>'+fig(BV==='side')+'</div><div>'+stats()+'<div class="card"><h3>Add measurements (cm)</h3>'+mform()+'</div></div></div>'+mlog()}
 function side(){
 var n=(P.name||'').trim(),ini=n?n.split(/\s+/).map(function(w){return w[0]}).slice(0,2).join('').toUpperCase():'LH',w=curW(),ag=ageOf(P.dob),cur=view.split(':')[0],fl=flag(P.country);cur={part:'body',photos:'body',progress:'workouts',prs:'workouts',volume:'workouts',prog:'workouts',newprog:'workouts'}[cur]||cur;
-var h='<div class="prof">'+lvBadge()+'<button class="av" data-v="profile" aria-label="Open profile">'+(P.pic?'<img src="'+P.pic+'" alt="Profile photo">':'<span>'+esc(ini)+'</span>')+'</button><div class="nm">'+esc(n||'Your name')+'</div><div class="ct">'+(fl?'<span class="fl">'+fl+'</span> ':'')+esc(P.country||'Add your country')+'</div></div>';
+var h='<div class="prof">'+lvBadge()+'<button class="av" data-v="profile" aria-label="Open profile">'+(P.pic?'<img src="'+P.pic+'" alt="Profile photo">':'<span>'+esc(ini)+'</span>')+'</button><div class="pt"><div class="nm">'+esc(n||'Your name')+'</div><div class="ct">'+(fl?'<span class="fl">'+fl+'</span> ':'')+esc(P.country||'Add your country')+'</div></div></div>';
 h+=lvlBlock()+'<div class="st"><div class="stc" role="button" tabindex="0" data-v="profile"><b>'+(ag==null?'–':ag)+'</b><span>Age</span></div><div class="stc" role="button" tabindex="0" data-v="profile"><b>'+esc(P.height?P.height+' cm':'–')+'</b><span>Height</span></div><div class="stc" role="button" tabindex="0" data-v="profile"><b>'+(w!=null?rnd(w,1)+' kg':'–')+'</b><span>Weight</span></div></div><div class="links">';
 NAV.forEach(function(x){h+='<button data-v="'+x[0]+'" aria-current="'+(cur===x[0])+'"><svg viewBox="0 0 24 24" aria-hidden="true">'+IC[x[0]]+'</svg><span class="tx">'+x[1]+'</span></button>'});
 return h+'</div><button class="hub" data-v="landing"><svg viewBox="0 0 24 24" aria-hidden="true">'+IC.hub+'</svg><span class="tx">LifeHub</span></button><div class="ver">Version '+VER+'</div>'}
@@ -937,17 +955,17 @@ var TL={good:'Good',ok:'Fair',improve:'Needs improvement',bad:'Needs attention'}
 function analytics(){
 var m=MET.filter(function(x){return x[0]===AN.m})[0],per=PER.filter(function(x){return x[0]===AN.p})[0],c=ago(+AN.p),all=pts(m[0]),d=all.filter(function(p){return p[0]>=c}),av=d.length?d.reduce(function(a,b){return a+b[1]},0)/d.length:null,nm=m[1].toLowerCase(),u=m[2]?' '+m[2]:'';
 var h='<h1>Analytics</h1><div class="row"><label>Metric<select id="anm">'+MET.map(function(x){return'<option value="'+x[0]+'"'+(x[0]===AN.m?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select></label><label>Time period<select id="anp">'+PER.map(function(x){return'<option value="'+x[0]+'"'+(x[0]===AN.p?' selected':'')+'>'+(x[1][0].toUpperCase()+x[1].slice(1))+'</option>'}).join('')+'</select></label></div>';
-h+='<div class="card"><div class="dh"><h3>'+m[1]+'</h3><span class="lab">Hover a point for its value. Dashed line shows the trend'+(m[0]==='weight'?'. Green line is the 7-day average':'')+'</span></div>'+chart(d,m[2],m[0]==='weight')+'<p style="margin:10px 0 0">'+(av==null?'No '+nm+' data in the last '+per[1]+' yet.':'Your average '+nm+' over the last '+per[1]+' was <b>'+rnd(av,1)+u+'</b>.')+'</p>';
+h+='<div class="anl"><div class="card"><div class="dh"><h3>'+m[1]+'</h3><span class="lab">Hover a point for its value. Dashed line shows the trend'+(m[0]==='weight'?'. Green line is the 7-day average':'')+'</span></div>'+chart(d,m[2],m[0]==='weight')+'<p style="margin:10px 0 0">'+(av==null?'No '+nm+' data in the last '+per[1]+' yet.':'Your average '+nm+' over the last '+per[1]+' was <b>'+rnd(av,1)+u+'</b>.')+'</p>';
 if(av!=null)h+='<p style="margin:6px 0 0"><b>Trend.</b> '+trendText(m,d,per[1])+'</p>';
 if(all.length){var lv=all[all.length-1],j=judge(m[0],lv[1],trendOf(d),all);if(j[1])h+='<div class="jd '+j[0]+'"><b>'+TL[j[0]]+'.</b> Your latest '+nm+' is '+rnd(lv[1],1)+u+' ('+lv[0]+'). '+esc(j[1])+'</div>'}
 h+='</div>';
-return h+insightsCard()+'<div class="card desc" style="margin-top:12px"><h3>About '+m[1]+'</h3>'+MD[m[0]].map(function(x){return'<p>'+x+'</p>'}).join('')+'</div>'}
+return h+'<div class="anr">'+insightsCard()+'<div class="card desc"><h3>About '+m[1]+'</h3>'+MD[m[0]].map(function(x){return'<p>'+x+'</p>'}).join('')+'</div></div></div>'}
 document.addEventListener('click',function(e){var b=e.target.closest('[data-act="uee"],[data-act="ues"],[data-act="uec"]');if(!b)return;e.stopImmediatePropagation();var a=b.getAttribute('data-act'),A=(b.getAttribute('data-a')||'').split('|');
 if(a==='uee')UE=b.getAttribute('data-a');else if(a==='uec')UE=null;else{var t=T[A[0]],ins=b.closest('tr').querySelectorAll('input'),en=(S[A[0]]||[]).filter(function(x){return x.id==A[1]})[0];if(en){en.date=ins[0].value||en.date;t.f.forEach(function(f,i){en[f[0]]=ins[i+1].value.trim()});fixSleep(A[0],en);save()}UE=null}
 render()},true);
 document.addEventListener('change',function(e){var t=e.target;if(t.name!=='opt'||!t.form)return;var c=t.form.querySelectorAll('input[name=opt]:checked');if(!c.length){t.checked=true;return}t.form.setAttribute('data-o',Array.prototype.map.call(c,function(x){return x.value}).join(' '))});
 document.addEventListener('keydown',function(e){var x=e.target.closest&&e.target.closest('.stc');if(x&&e.target===x&&(e.key==='Enter'||e.key===' ')){e.preventDefault();x.click()}});
-var VER='2.1.2',LV=null,CSVMSG='';
+var VER='2.1.3',LV=null,CSVMSG='';
 var ICD={health:'<path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',weight:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 10a4 4 0 0 1 8 0M12 10l2-2"/>',nutrition:IC.nutrition,bodyfat:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',bmi:'<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l4-5"/><path d="M4 19h16"/>',calories:'<path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3-1-3 0-6 1-9z"/>',program:IC.workouts,rhr:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',sleep:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',steps:'<path d="M3 17h18v2H3zM4 17V9l5 2 3-3 4 3 3 1v5"/>',measure:'<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/>'};
 function qp(t,s){return'<span class="qp" style="background:hsl('+Math.round(Math.max(0,Math.min(100,s))*1.2)+',68%,34%)">'+esc(t)+'</span>'}
 var PHS={'Very lean and muscular':95,'Lean and athletic':95,'Muscular and fit':90,'Solid and fit':80,'Fit and toned':90,'Average, healthy build':70,'Slight build':50,'Heavy build with moderate body fat':45,'Solid build with some excess fat':50,'Average build':65,'Heavier build':40,'Large build':30,'Carrying some excess body fat':40,'Heavier build with excess body fat':25,'High body fat, with gradual fat loss the priority':10};
@@ -1169,7 +1187,7 @@ function expM(id){return F().expenses.reduce(function(s,e){return e.acct==id?s+m
 var FSCORETIP='<b>How this score works</b><p>Each measure you have set up is scored from 0 to 100, then averaged. At least three are needed.</p><p>Savings rate (20% of take-home or more is strong), emergency fund (6 months covered), expenses compared with take-home pay (under 50% is strong), debt compared with annual salary, and super compared with a typical balance for your age.</p><p>It is a general guide, not financial advice.</p>';
 var _stip=stip;stip=function(t){return t==='fscore'?FSCORETIP:_stip(t)};
 function sideF(){var n=(P.name||'').trim(),ini=n?n.split(/\s+/).map(function(w){return w[0]}).slice(0,2).join('').toUpperCase():'LH',fl=flag(P.country),c=calcSal(),f=F(),cur={facct:'faccounts',faccnew:'faccounts'}[view.split(':')[0]]||view.split(':')[0],nw=0;f.accounts.forEach(function(a){nw+=(a.type==='debt'?-1:1)*(+a.balance||0)});
-var h='<div class="prof"><button class="av" data-v="fprofile" aria-label="Open profile">'+(P.pic?'<img src="'+P.pic+'" alt="Profile photo">':'<span>'+esc(ini)+'</span>')+'</button><div class="nm">'+esc(n||'Your name')+'</div><div class="ct">'+(fl?'<span class="fl">'+fl+'</span> ':'')+esc(P.country||'Add your country')+'</div></div>';
+var h='<div class="prof"><button class="av" data-v="fprofile" aria-label="Open profile">'+(P.pic?'<img src="'+P.pic+'" alt="Profile photo">':'<span>'+esc(ini)+'</span>')+'</button><div class="pt"><div class="nm">'+esc(n||'Your name')+'</div><div class="ct">'+(fl?'<span class="fl">'+fl+'</span> ':'')+esc(P.country||'Add your country')+'</div></div></div>';
 h+='<div class="st"><div class="stc" role="button" tabindex="0" data-v="fincome"><b>'+(c.has?fm(c.base/1000)+'k':'–')+'</b><span>Salary</span></div><div class="stc" role="button" tabindex="0" data-v="fincome"><b>'+(c.has?fm(c.net/12):'–')+'</b><span>Net / mth</span></div><div class="stc" role="button" tabindex="0" data-v="faccounts"><b>'+(f.accounts.length?fm(nw):'–')+'</b><span>Net worth</span></div></div><div class="links">';
 FNAV.forEach(function(x){h+='<button data-v="'+x[0]+'" aria-current="'+(cur===x[0])+'"><svg viewBox="0 0 24 24" aria-hidden="true">'+IC[x[0]]+'</svg><span class="tx">'+x[1]+'</span></button>'});
 return h+'</div><button class="hub" data-v="landing"><svg viewBox="0 0 24 24" aria-hidden="true">'+IC.hub+'</svg><span class="tx">LifeHub</span></button><div class="ver">Version '+VER+'</div>'}
@@ -1614,6 +1632,7 @@ document.addEventListener('focusout',function(){if(SY.defer){SY.defer=false;setT
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')poll()});
 var LASTD=today();
 document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible'||today()===LASTD)return;if(ND===LASTD)ND=today();LASTD=today();GRT={};if(!typing())render()});
+try{new ResizeObserver(function(){requestAnimationFrame(drawFlows)}).observe(document.getElementById('main'))}catch(x){}
 syncInit();
 render();
 </script>
