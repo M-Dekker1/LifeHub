@@ -1,10 +1,15 @@
 // LifeHub service worker: keeps the app working offline.
 // Bump CACHE when you want every device to refetch all files.
-const CACHE = 'lifehub-v2.0.0';
+const CACHE = 'lifehub-v2.1.1';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // Cache each file on its own so one missing file (e.g. an icon) cannot break the whole install.
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => Promise.all(FILES.map((f) => c.add(f).catch(() => {}))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (e) => {
@@ -16,15 +21,17 @@ self.addEventListener('activate', (e) => {
 });
 
 // Network first for same-site files (so updates arrive when online), cache as the offline fallback.
-// Requests to other sites (Supabase, fonts) are left alone.
+// Only successful responses are cached. Requests to other sites (Supabase, fonts) are left alone.
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(req)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
         return res;
       })
       .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
