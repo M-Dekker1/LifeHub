@@ -18,17 +18,17 @@ const hue=()=>{const y=yr(GS().sel);return y&&y.hue!=null?+y.hue:250};
 const pw=g=>(PRI.find(p=>p[0]===g.pri)||PRI[1])[2];
 const wa=(l,f)=>{let w=0,t=0;l.forEach(x=>{const r=f(x);w+=r[0];t+=r[0]*r[1]});return w?t/w:0};
 const D=s=>new Date(s+'T00:00:00'),tk=o=>o.ticks||(o.ticks=[]),obj=(gl,sid)=>{if(sid==='_')return gl;const r=fs(gl.steps,sid);return r?r[0][r[1]]:null};
-const LINKS={},reg=(k,label,grp,unit,get)=>{LINKS[k]={label,grp,unit,get}};window.GoalLinks={reg};
+const LINKS={},reg=(k,label,grp,unit,get,ser)=>{LINKS[k]={label,grp,unit,get,ser}};window.GoalLinks={reg};
 const finSum=t=>F().accounts.filter(a=>a.type===t).reduce((s,a)=>s+(+a.balance||0),0),expTot=()=>{let e=0;F().expenses.forEach(x=>e+=monthly(x));return e};
-reg('weight','Weight','Health','kg',()=>curW());reg('bf','Body fat','Health','%',()=>getBf());
-PL.forEach(p=>reg('m:'+p[0],p[1]+' measurement','Health','cm',()=>rv(p[0])));
-reg('sleep','Average sleep (7 days)','Health','h',()=>avg7('sleep','hours'));reg('steps','Average steps (7 days)','Health','',()=>avg7('vitals','steps'));
-reg('rhr','Resting heart rate','Health','bpm',()=>last('vitals','rhr'));reg('vo2','Cardio fitness (VO2)','Health','',()=>last('vitals','vo2'));
+reg('weight','Weight','Health','kg',()=>curW(),()=>pts('weight'));reg('bf','Body fat','Health','%',()=>getBf(),()=>pts('bf'));
+PL.forEach(p=>reg('m:'+p[0],p[1]+' measurement','Health','cm',()=>rv(p[0]),()=>ml(p[0]).map(e=>[e.date,e.v])));
+reg('sleep','Average sleep (7 days)','Health','h',()=>avg7('sleep','hours'),()=>pts('sleep'));reg('steps','Average steps (7 days)','Health','',()=>avg7('vitals','steps'),()=>pts('steps'));
+reg('rhr','Resting heart rate','Health','bpm',()=>last('vitals','rhr'),()=>pts('rhr'));reg('vo2','Cardio fitness (VO2)','Health','',()=>last('vitals','vo2'),()=>pts('vo2'));
 reg('sess','Workouts since goal start','Health','',(o,g)=>S.sess.filter(x=>x.date>=g.start).length);reg('streak','Logging streak','Health','days',()=>gcalc().c.streakCur);
-reg('nw','Net worth','Finance','$',()=>nwNow().net);reg('debt','Debt remaining','Finance','$',()=>finSum('debt'));reg('super','Super balance','Finance','$',()=>finSum('super'));
+reg('nw','Net worth','Finance','$',()=>nwNow().net,()=>F().nw.map(x=>[x.date,x.net]));reg('debt','Debt remaining','Finance','$',()=>finSum('debt'));reg('super','Super balance','Finance','$',()=>finSum('super'));
 reg('emo','Emergency fund (months)','Finance','months',()=>{const e=expTot(),inc=incTot();return finSum('emergency')/(e>0?e:inc*.7||1)});
 reg('srate','Savings rate','Finance','%',()=>{const inc=incTot();return inc?(inc-expTot())/inc*100:null});
-const syncLinks=()=>{F().accounts.forEach(a=>reg('a:'+a.id,a.name+' balance','Finance','$',()=>{const x=acc(a.id);return x?+x.balance:null}));F().goals.forEach(q=>reg('sg:'+q.id,'Savings goal: '+q.name,'Finance','$',()=>gEff(q)))};
+const syncLinks=()=>{F().accounts.forEach(a=>reg('a:'+a.id,a.name+' balance','Finance','$',()=>{const x=acc(a.id);return x?+x.balance:null},()=>((acc(a.id)||{}).hist||[]).map(h=>[h.date,h.v])));F().goals.forEach(q=>reg('sg:'+q.id,'Savings goal: '+q.name,'Finance','$',()=>gEff(q)))};
 const lval=(o,g)=>{const l=LINKS[o.link];if(!l)return null;try{const v=l.get(o,g);return v==null||!isFinite(v)?null:+v}catch(e){return null}};
 const cur=(o,g)=>{if(o.ov!==''&&o.ov!=null&&isFinite(+o.ov))return+o.ov;const l=lval(o,g);return l!=null?l:(o.cur===''||o.cur==null?null:+o.cur)};
 const hab=(o,g)=>{const en=o.due||g.due,days=Math.max(1,(D(en)-D(g.start))/864e5+1),exp=(+o.n||1)*(o.per==='month'?days/30.4375:days/7),c=tk(o).filter(d=>d>=g.start&&d<=en).length;return{c,exp,p:Math.min(100,c/exp*100)}};
@@ -38,7 +38,8 @@ const sp=(s,g)=>(s.kids&&s.kids.length)?wa(s.kids,x=>[SZ[x.size]||2,sp(x,g)]):le
 const raw=g=>g.steps.length?wa(g.steps,x=>[SZ[x.size]||2,sp(x,g)]):(g.kind==='measure'||g.kind==='habit')?leaf(g,g):(+g.manual||0);
 const gp=g=>g.status==='done'?100:raw(g);
 const elapsed=g=>{const a=new Date(g.start+'T00:00:00'),b=new Date(g.due+'T00:00:00'),n=new Date();return b>a?Math.max(0,Math.min(100,(n-a)/(b-a)*100)):100};
-const pace=(p,e,over)=>{const d=p-e;return over||d<-25?['risk','At risk',10]:d>=10?['ahead','Ahead',100]:d>=-10?['on','On track',80]:['behind','Behind',40]};
+const PS=()=>{const s=GS().set||{},n=(k,d)=>s[k]!=null&&s[k]!==''&&isFinite(+s[k])?+s[k]:d;return{a:n('a',10),b:n('b',10),r:n('r',25),g:n('g',7)}};
+const pace=(p,e,over)=>{const d=p-e,t=PS();return over||d<-t.r?['risk','At risk',10]:d>=t.a?['ahead','Ahead',100]:d>=-t.b?['on','On track',80]:['behind','Behind',40]};
 const gpace=g=>{if(g.status==='done')return['done','Done',100];if(g.status==='paused'||g.status==='dropped')return null;const p=gp(g);return pace(p,elapsed(g),new Date(g.due+'T23:59:59')<new Date()&&p<100)};
 const live=l=>l.filter(g=>g.status!=='paused'&&g.status!=='dropped');
 const agg=l=>{l=live(l);if(!l.length)return null;const p=wa(l,g=>[pw(g),gp(g)]),e=wa(l,g=>[pw(g),elapsed(g)]);return{p,e,n:l.length,pc:pace(p,e,false)}};
@@ -59,7 +60,7 @@ const tile=g=>{const p=gp(g),c=cat(g.cat),pr=PRI.find(x=>x[0]===g.pri)||PRI[1];r
 function gldash(){const g=GS(),y=yr(g.sel),gs=g.goals.filter(x=>x.year==g.sel),A=agg(gs);
 if(!y)return head('Plan '+g.sel,'Give this year a theme to get started. It sets the colour and tone of your goals.')+ysel()+`<div class="card">${yform(g.sel)}</div>`;
 let h=head(esc(y.name),esc(y.statement||''))+ysel()+'<div class="dgrid">';
-h+=`<div class="dbx s6 hero" role="button" tabindex="0" data-v="glgoals">${ring(A?A.p:0,130)}<div><div class="lab dl">${ic('target')}${esc(y.name)} · ${g.sel}</div><div class="hl">${A?Math.round(A.p)+'% complete':'No goals yet'}</div><div class="dk">${A?`${A.n} active goals · time elapsed ${Math.round(100*((Date.now()-new Date(g.sel+'-01-01'))/(365*864e5)>1?1:Math.max(0,(Date.now()-new Date(g.sel+'-01-01'))/(365*864e5))))}%`:'Add your first goal to start tracking.'}</div><div style="margin-top:6px">${A?pq(A.pc):''}</div>${y.question?`<p class="sub" style="font-style:italic">${esc(y.question)}</p>`:''}</div></div>`;
+h+=`<div class="dbx s6 hero" role="button" tabindex="0" data-v="glgoals">${ring(A?A.p:0,130)}<div><div class="lab dl">${ic('target')}${esc(y.name)} · ${g.sel}</div><div class="hl">${A?Math.round(A.p)+'% complete':'No goals yet'}</div><div class="dk">${A?`${A.n} active goals · time elapsed ${Math.round(A.e)}%`:'Add your first goal to start tracking.'}</div><div style="margin-top:6px">${A?pq(A.pc):''}</div>${y.question?`<p class="sub" style="font-style:italic">${esc(y.question)}</p>`:''}</div></div>`;
 g.cats.forEach(c=>{const l=gs.filter(x=>x.cat===c.id),a=agg(l);if(!l.length)return;h+=`<div class="dbx s2" role="button" tabindex="0" data-act="gl-fcat" data-a="${c.id}"><div class="lab dl">${ic(c.icon)}${esc(c.name)}</div><div class="big">${a?Math.round(a.p):'–'}<small>%</small></div>${a?bar(a.p,'var(--acc)'):''}<div class="dk">${l.length} goal${l.length>1?'s':''}</div>${a?pq(a.pc):''}</div>`});
 const soon=live(gs).filter(x=>x.status!=='done'&&(new Date(x.due+'T00:00:00')-Date.now())/864e5<=30).sort((a,b)=>a.due<b.due?-1:1).slice(0,5),
  beh=live(gs).filter(x=>{const p=gpace(x);return p&&(p[0]==='behind'||p[0]==='risk')}).slice(0,5),
@@ -72,14 +73,15 @@ function glgoals(){const g=GS(),y=yr(g.sel);let gs=g.goals.filter(x=>x.year==g.s
 const f=(k,v)=>!v||k(v);gs=gs.filter(x=>(!GF.cat||x.cat===GF.cat||(x.c2||[]).includes(GF.cat))&&(!GF.st||x.status===GF.st)&&(!GF.pri||x.pri===GF.pri));
 let h=head('Goals',y?`Theme: <b>${esc(y.name)}</b>`:'No theme set for this year yet.')+ysel()+`<div class="row"><label>Category<select id="glfc">${sel([['','All']].concat(g.cats.map(c=>[c.id,esc(c.name)])),GF.cat)}</select></label><label>Status<select id="glfs">${sel([['','All']].concat(STS),GF.st)}</select></label><label>Priority<select id="glfp">${sel([['','All']].concat(PRI.map(p=>[p[0],p[1]])),GF.pri)}</select></label></div>`;
 g.cats.forEach(c=>{const l=gs.filter(x=>x.cat===c.id);if(!l.length)return;const a=agg(l);h+=`<h2>${esc(c.name)}${a?` · ${Math.round(a.p)}%`:''}</h2><div class="tiles">${l.map(tile).join('')}</div>`});
-return h+`<h2>Add</h2><div class="tiles"><button class="tile newt" data-v="glnew">+ New goal</button></div>`}
+return h+(gs.length?'':'<p class="empty">No goals to show.</p>')+`<h2>Add</h2><div class="tiles"><button class="tile newt" data-v="glnew">+ New goal</button></div>`}
 
 function glnew(){const g=GS(),s=g.sel;return`<button class="ghost" data-v="glgoals">← Back to goals</button><h1 style="margin:12px 0">New goal</h1><form class="mform" data-f="gl-goal"><div class="grid"><label>Title<input name="title" type="text" required></label><label>Primary category<select name="cat">${sel(g.cats.map(c=>[c.id,esc(c.name)]))}</select></label><label>Priority<select name="pri">${sel(PRI.map(p=>[p[0],p[1]]),'normal')}</select></label><label>Start<input name="start" type="date" value="${s}-01-01"></label><label>Due<input name="due" type="date" value="${s}-12-31"></label><label>Thumbnail<input name="img" type="file" accept="image/*"></label></div><fieldset class="opts2"><legend class="lab">Secondary categories</legend>${g.cats.map(c=>`<label class="chk"><input type="checkbox" name="c2" value="${c.id}"> ${esc(c.name)}</label>`).join('')}</fieldset><label>Description<textarea name="desc" rows="3"></textarea></label><label>Why it matters<textarea name="why" rows="3"></textarea></label><button class="add" type="submit">Create goal</button></form>`}
 
 const lopts=v=>{const gr={};Object.keys(LINKS).forEach(k=>(gr[LINKS[k].grp]=gr[LINKS[k].grp]||[]).push(k));return'<option value="">Manual</option>'+Object.keys(gr).map(g=>`<optgroup label="${g}">`+gr[g].map(k=>`<option value="${k}"${k===v?' selected':''}>${esc(LINKS[k].label)}</option>`).join('')+'</optgroup>').join('')};
+const ser=(o,g,u)=>{const l=LINKS[o.link];if(!l||!l.ser)return'';let d=[];try{d=(l.ser()||[]).filter(p=>p[0]>=g.start)}catch(e){}return d.length>1?`<div style="max-width:420px;margin-bottom:8px">${chart(d,u)}</div>`:''};
 function kind(g,o,b,d){const A=f=>`data-gls="${b}|${f}"`,m=`<div style="margin-left:${d*22+28}px">`;
- if(o.kind==='measure'){const l=LINKS[o.link],v=cur(o,g),u=o.unit||(l?l.unit:''),auto=l&&(o.ov===''||o.ov==null);return`${m}<div class="gk"><label>Link<select ${A('link')}>${lopts(o.link)}</select></label><label>Start<input type="number" step="any" ${A('vs')} value="${esc(o.vs)}"></label>${l?`<label>Override<input type="number" step="any" ${A('ov')} value="${esc(o.ov)}" placeholder="auto"></label>`:`<label>Current<input type="number" step="any" ${A('cur')} value="${esc(o.cur)}"></label>`}<label>Target<input type="number" step="any" ${A('target')} value="${esc(o.target)}"></label><label>Unit<input ${A('unit')} value="${esc(u)}"></label><span class="dk mono">Now: ${v==null?'–':rnd(v,2)} ${esc(u)}${auto?' (linked)':''}</span></div></div>`}
- if(o.kind==='habit'){const h=hab(o,g),t=new Set(tk(o));let c='';for(let i=34;i>=0;i--){const x=ago(i);c+=`<button type="button" class="tick${t.has(x)?' on':''}" data-act="gl-tick" data-a="${b}|${x}" title="${x}">${+x.slice(8)}</button>`}
+ if(o.kind==='measure'){const l=LINKS[o.link],v=cur(o,g),u=o.unit||(l?l.unit:''),auto=l&&(o.ov===''||o.ov==null);return`${m}<div class="gk"><label>Link<select ${A('link')}>${lopts(o.link)}</select></label><label>Start<input type="number" step="any" ${A('vs')} value="${esc(o.vs)}"></label>${l?`<label>Override<input type="number" step="any" ${A('ov')} value="${esc(o.ov)}" placeholder="auto"></label>`:`<label>Current<input type="number" step="any" ${A('cur')} value="${esc(o.cur)}"></label>`}<label>Target<input type="number" step="any" ${A('target')} value="${esc(o.target)}"></label><label>Unit<input ${A('unit')} value="${esc(u)}"></label><span class="dk mono">Now: ${v==null?'–':rnd(v,2)} ${esc(u)}${auto?' (linked)':''}</span></div>${ser(o,g,u)}</div>`}
+ if(o.kind==='habit'){const h=hab(o,g),t=new Set(tk(o));let c='';c='<i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i>S</i><i>S</i>';const w0=D(wkStart(today()));w0.setDate(w0.getDate()-28);for(let i=0;i<35;i++){const dd=new Date(w0);dd.setDate(w0.getDate()+i);const x=ds(dd);c+=`<button type="button" class="tick${t.has(x)?' on':''}" data-act="gl-tick" data-a="${b}|${x}" title="${x}"${x>today()?' disabled':''}>${+x.slice(8)}</button>`}
   return`${m}<div class="gk"><label>Times<input type="number" min="1" ${A('n')} value="${esc(o.n||1)}"></label><label>Per<select ${A('per')}>${sel([['week','Week'],['month','Month']],o.per||'week')}</select></label><span class="dk mono">${h.c} done · ${Math.round(h.p)}% of ${Math.round(h.exp)} expected · streak ${streak(o)}d</span></div><div class="tg">${c}</div></div>`}
  return''}
 const fit=(f,m,cb)=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const s=Math.min(1,m/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*s);c.height=Math.round(i.height*s);c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.8))};i.src=r.result};r.readAsDataURL(f)};
@@ -97,13 +99,13 @@ let h=head('Years','Each year has one theme and its own set of goals.');
 h+='<div class="tiles" style="margin-top:12px">'+ys.map(y=>{const a=agg(g.goals.filter(x=>x.year==y.y));return`<div class="card"><div class="dh"><h3>${y.y}</h3><button class="x" data-act="gl-edy" data-a="${y.y}" aria-label="Edit theme">✎</button></div><div class="nm" style="font-size:20px">${esc(y.name)}</div><p class="sub">${esc(y.statement)}</p><div class="dh"><b class="mono">${a?Math.round(a.p)+'%':'–'}</b>${a?pq(a.pc):''}</div><div class="row" style="margin:8px 0 0"><button class="ghost" data-act="gl-selyear" data-a="${y.y}">Open</button><button class="ghost" data-act="gl-rc" data-a="${y.y}">Recap</button>${g.goals.some(x=>x.year==y.y&&!x.archived&&UNF.includes(x.status))?`<button class="ghost" data-act="gl-coy" data-a="${y.y}">Carry over</button>`:''}</div></div>`}).join('')+'</div>';
 const ey=YED||nx;return h+rcPanel()+coyPanel()+`<h2>${YED?'Edit '+YED:'Plan '+nx}</h2><div class="card">${yform(ey)}</div>`}
 
-function glsettings(){const g=GS();return head('Settings','Categories are shared across all years.')+`<h2>Categories</h2><div class="card">${g.cats.map(c=>`<div class="band">${ic(c.icon)}<input data-glcat="${c.id}" value="${esc(c.name)}" style="width:200px" aria-label="Category name"><button class="x" data-act="gl-dcat" data-a="${c.id}" aria-label="Delete category">×</button></div>`).join('')}<form data-f="gl-cat" style="margin-top:10px"><label>New category<input name="name" type="text" required></label><button class="add" type="submit">Add category</button></form><p class="sub" style="margin:0">A category with goals in it cannot be deleted. Move or delete those goals first.</p></div>`}
+function glsettings(){const g=GS();return head('Settings','Pace, categories and storage.')+paceCard()+`<h2>Categories</h2><div class="card">${g.cats.map(c=>`<div class="band">${ic(c.icon)}<input data-glcat="${c.id}" value="${esc(c.name)}" style="width:200px" aria-label="Category name"><button class="x" data-act="gl-dcat" data-a="${c.id}" aria-label="Delete category">×</button></div>`).join('')}<form data-f="gl-cat" style="margin-top:10px"><label>New category<input name="name" type="text" required></label><button class="add" type="submit">Add category</button></form><p class="sub" style="margin:0">A category with goals in it cannot be deleted. Move or delete those goals first.</p></div>`+storageCard()}
 
 /* ---------- shell ---------- */
 /* ---------- Phase 3: check-ins, review, carry-over, recap ---------- */
 const chk=()=>GS().checks=GS().checks||[],ymOf=d=>d.slice(0,7),UNF=['todo','doing','paused'];
 const lastDay=d=>{const x=D(d);return new Date(x.getFullYear(),x.getMonth()+1,0).getDate()===x.getDate()};
-const dueYm=()=>{const t=today();if(lastDay(t))return ymOf(t);if(+t.slice(8)<=7){const x=new Date();x.setDate(0);return ds(x).slice(0,7)}return null};
+const dueYm=()=>{const t=today();if(lastDay(t))return ymOf(t);if(+t.slice(8)<=PS().g){const x=new Date();x.setDate(0);return ds(x).slice(0,7)}return null};
 const mname=ym=>new Date(ym+'-01T00:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'});
 const prompts=t=>[/rebirth|renew|reset|reinvent/i.test(t)?'What did you let go of this month?':`What did "${t||'this year'}" ask of you this month?`,'What are you proud of this month?','What will you change next month?'];
 const hist=gl=>chk().filter(c=>c.snap&&c.snap[gl.id]!=null).sort((a,b)=>a.date<b.date?-1:1).map(c=>[c.date,c.snap[gl.id]]);
@@ -123,6 +125,9 @@ const done=gs.filter(x=>x.status==='done'),cs=g.cats.map(c=>[c,agg(gs.filter(x=>
 const cb=gs.map(x=>{const v=ck.map(c=>c.snap&&c.snap[x.id]).filter(z=>z!=null);return v.length>1?[x,gp(x)-Math.min(...v)]:null}).filter(Boolean).sort((a,b)=>b[1]-a[1])[0];
 ck.forEach(c=>Object.values(c.rate||{}).forEach(r=>{if(r.f)fe.push(r.f)}));
 return`<h2>${y} recap${th?' · '+esc(th.name):''}</h2><div class="card"><div class="grid">${card('Final score',A?Math.round(A.p):'–','%')}${card('Goals completed',done.length,'/ '+gs.length)}${card('Check-ins',ck.length,'/ 12')}${card('Average feeling',fe.length?rnd(fe.reduce((a,b)=>a+b,0)/fe.length,1):'–','/ 5')}</div>${cs.length?`<p style="margin:12px 0 0">Best category: <b>${esc(cs[0][0].name)}</b> at ${Math.round(cs[0][1].p)}%.</p>`:''}${cb&&cb[1]>=10?`<p style="margin:6px 0 0">Biggest comeback: <b>${esc(cb[0].title)}</b>, up ${Math.round(cb[1])} points from its lowest check-in.</p>`:''}${done.length?`<h3 style="margin-top:12px">Completed</h3>${done.map(x=>`<div class="ev"><span>🏆 ${esc(x.title)}</span><b class="mono">${x.doneAt||''}</b></div>`).join('')}`:''}</div>`};
+const paceCard=()=>{const p=PS();return`<h2>Pace</h2><div class="card"><p class="sub" style="margin-top:0">Pace compares a goal's progress with the share of its time that has passed. Differences are in percentage points.</p><div class="grid"><label>Ahead when this far above<input type="number" min="0" max="100" data-glset="a" value="${p.a}"></label><label>Behind when this far below<input type="number" min="0" max="100" data-glset="b" value="${p.b}"></label><label>At risk when this far below<input type="number" min="0" max="100" data-glset="r" value="${p.r}"></label><label>Check-in reminder lasts (days)<input type="number" min="0" max="28" data-glset="g" value="${p.g}"></label></div><div class="row"><button class="ghost" data-act="gl-rset">Reset to defaults</button></div></div>`};
+const storageCard=()=>{const g=GS(),tot=JSON.stringify(S).length,gl=JSON.stringify(g).length,im=g.goals.reduce((n,x)=>n+(x.img||'').length+(x.att||[]).reduce((m,a)=>m+(a.img||'').length,0),0),cap=5*1048576,mb=b=>(b/1048576).toFixed(2);return`<h2>Storage</h2><div class="card"><div class="dh"><span>LifeHub data on this device</span><b class="mono">${mb(tot)} MB of about 5 MB</b></div>${bar(tot/cap*100,tot/cap>.8?'#ef4444':'var(--acc)')}<p class="sub" style="margin:0">Goals use ${mb(gl)} MB, of which images are ${mb(im)} MB. This is an estimate, and browser limits vary.</p></div>`};
+const sweep=()=>{let d=0;GS().goals.forEach(g=>{if(g.status==='todo'||g.status==='doing'){const w=g.status;after(g);if(g.status!==w)d=1}});if(d)save()};
 const VIEWS={gldash,glgoals,glnew,glyears,glreview,glsettings};
 function gside(){const n=(P.name||'').trim(),ini=n?n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase():'LH',fl=flag(P.country),cur=({glgoal:'glgoals',glnew:'glgoals'})[view.split(':')[0]]||view.split(':')[0];
 return`<div class="prof"><div class="av">${P.pic?`<img src="${P.pic}" alt="">`:`<span>${esc(ini)}</span>`}</div><div class="pt"><div class="nm">${esc(n||'Your name')}</div><div class="ct">${fl?`<span class="fl">${fl}</span> `:''}${esc(P.country||'')}</div></div></div><div class="links">${GNAV.map(x=>`<button data-v="${x[0]}" aria-current="${cur===x[0]}">${ic(x[2])}<span class="tx">${x[1]}</span></button>`).join('')}</div><button class="hub" data-v="landing">${ic('layout-grid')}<span class="tx">LifeHub</span></button><div class="ver">Version ${VER}</div>`}
@@ -131,7 +136,7 @@ const _r=render;
 render=function(){const ap=document.getElementById('app');
  if(SPACE!=='goals'||view==='landing'){if(ap)ap.style.cssText='';return _r()}
  if(!/^gl/.test(view))view='gldash';
- const sy=window.scrollY;applyTheme();syncLinks();const h=hue();
+ const sy=window.scrollY;applyTheme();syncLinks();sweep();const h=hue();
  ap.className='app asp-g';ap.style.cssText=`--a-p:hsl(${h},50%,48%);--a-a:hsl(${h},75%,70%);--a-d:hsl(${h},50%,30%);--a-t:hsl(${h},45%,90%)`;
  document.getElementById('side').innerHTML=gside();
  const v=view.split(':'),F=VIEWS[v[0]],body=v[0]==='glgoal'?glgoal(v[1]):F?F():gldash();
@@ -139,7 +144,7 @@ render=function(){const ap=document.getElementById('app');
 const _land=landing;landing=()=>_land().replace(/<div class="pick off asp-g"[^>]*>([\s\S]*?)<\/div>/,(m,i)=>`<button class="pick asp-g" data-v="gldash" data-sp="goals">${i.replace(/<span class="soon">[^<]*<\/span>/,'')}</button>`);
 NAV.forEach(x=>{if(x[0]==='goals')x[1]='Targets'});
 const _g=goals;goals=()=>_g().replace('<h1>Goals</h1>','<h1>Targets</h1>');
-VER='2.4.0';
+VER='2.5.0';
 
 /* ---------- events ---------- */
 const sv=()=>{save();render()};
@@ -148,8 +153,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act^="gl-"
  if(a==='gl-fcat'){GF={cat:A[0],st:'',pri:''};view='glgoals'}
  else if(a==='gl-selyear'){g.sel=+A[0];view='gldash'}
  else if(a==='gl-edy')YED=+A[0];
- else if(a==='gl-dstep'){const gl=gid(A[0]),r=fs(gl.steps,A[1]);if(r)r[0].splice(r[1],1);after(gl)}
+ else if(a==='gl-dstep'){const gl=gid(A[0]),r=fs(gl.steps,A[1]);if(r&&(r[0][r[1]].kids||[]).length&&!confirm('Delete this step and its sub-steps?'))return;if(r)r[0].splice(r[1],1);after(gl)}
  else if(a==='gl-ck')CK=!CK
+ else if(a==='gl-rset')g.set={}
  else if(a==='gl-coy')COY=A[0]?+A[0]:null
  else if(a==='gl-rc')RC=RC==A[0]?null:+A[0]
  else if(a==='gl-tick'){const gl=gid(A[0]),o=obj(gl,A[1]);if(o){const t=tk(o),i=t.indexOf(A[2]);if(i>-1)t.splice(i,1);else t.push(A[2]);after(gl)}}
@@ -180,10 +186,11 @@ document.addEventListener('change',e=>{const t=e.target,g=GS(),at=n=>t.getAttrib
  if(t.id==='glfc'||t.id==='glfs'||t.id==='glfp'){GF[{glfc:'cat',glfs:'st',glfp:'pri'}[t.id]]=t.value;e.stopImmediatePropagation();render();return}
  if(at('data-glf')){e.stopImmediatePropagation();const q=at('data-glf').split('|'),gl=gid(q[0]),f=q[1];
   if(f==='img'){if(t.files[0])rimg(t.files[0],360,480,u=>{gl.img=u;sv()});return}
-  gl[f]=f==='manual'?Math.max(0,Math.min(100,+t.value||0)):t.value;if(f==='status'&&t.value==='done'){GWIN=gl.title;gl.doneAt=today()}if(f==='cat')gl.c2=(gl.c2||[]).filter(x=>x!==t.value);sv();return}
+  if(f==='title'&&!t.value.trim()){sv();return}gl[f]=f==='manual'?Math.max(0,Math.min(100,+t.value||0)):t.value;if(f==='status'&&t.value==='done'){GWIN=gl.title;gl.doneAt=today()}if(f==='cat')gl.c2=(gl.c2||[]).filter(x=>x!==t.value);sv();return}
  if(at('data-glc2')){e.stopImmediatePropagation();const q=at('data-glc2').split('|'),gl=gid(q[0]);gl.c2=(gl.c2||[]).filter(x=>x!==q[1]);if(t.checked)gl.c2.push(q[1]);sv();return}
  if(at('data-gls')){e.stopImmediatePropagation();const q=at('data-gls').split('|'),gl=gid(q[0]),s=obj(gl,q[1]);if(!s)return;
-  if(q[2]==='done'){s.done=t.checked;after(gl)}else{s[q[2]]=t.value;if(q[2]==='link'){const v=lval(s,gl);s.ov='';if(v!=null)s.vs=Math.round(v*100)/100}if(q[2]==='kind'&&s.kind==='habit'&&!s.n)s.n=1}after(gl);sv();return}
+  if(q[2]==='done'){s.done=t.checked;after(gl)}else{if(q[2]==='title'&&!t.value.trim()){sv();return}s[q[2]]=t.value;if(q[2]==='link'){const v=lval(s,gl);s.ov='';if(v!=null)s.vs=Math.round(v*100)/100}if(q[2]==='kind'&&s.kind==='habit'&&!s.n)s.n=1}after(gl);sv();return}
+ if(at('data-glset')){e.stopImmediatePropagation();const s=g.set=g.set||{};s[at('data-glset')]=Math.max(0,Math.min(100,+t.value||0));const q=PS();if(q.r<q.b)s.r=q.b;sv();return}
  if(at('data-glcat')){e.stopImmediatePropagation();const c=cat(at('data-glcat'));if(c&&t.value.trim()){c.name=t.value.trim();sv()}}},true);
 
 /* ---------- sync: goal thumbnails and attachments travel as separate image records ---------- */
@@ -192,7 +199,7 @@ async function hydrate(){let ch=false;const fx=async(o,f)=>{if(typeof o[f]==='st
 const _spull=syncPull;syncPull=async function(f){const r=await _spull(f);if(r)await hydrate();return r};
 document.addEventListener('input',e=>{const t=e.target;if(t.classList&&t.classList.contains('hue')){const w=document.getElementById('hsw');if(w)w.style.background='hsl('+t.value+',50%,48%)'}});
 /* ---------- styles ---------- */
-const st=document.createElement('style');st.textContent='textarea{font:14px Inter,system-ui,sans-serif;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%;resize:vertical}.gst{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line)}.gst input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}.gst .gt{flex:1;min-width:140px}.gst select{width:72px}.gst input[type=date]{width:140px}.asp-g .tile .badge.tb{z-index:2}.hue{-webkit-appearance:none;appearance:none;height:14px;min-height:14px;padding:0;border-radius:7px;border:1px solid var(--line);background:linear-gradient(90deg,hsl(0,50%,48%),hsl(60,50%,48%),hsl(120,50%,48%),hsl(180,50%,48%),hsl(240,50%,48%),hsl(300,50%,48%),hsl(360,50%,48%))}.hue::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid var(--ink);cursor:pointer}.hue::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--ink)}.hr{display:flex;gap:10px;align-items:center}.hr .hue{flex:1}.gk{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:4px 0 8px}.gk label{flex:0 1 110px}.tg{display:grid;grid-template-columns:repeat(7,30px);gap:4px;margin:4px 0 10px}.tick{width:30px;height:30px;min-height:0;border:1px solid var(--line);background:var(--bg);color:var(--mute);border-radius:6px;font:500 11px var(--mono);cursor:pointer;padding:0}.tick.on{background:var(--acc);color:var(--on);border-color:var(--acc)}.gst select.gk2{width:92px}';document.head.appendChild(st);
+const st=document.createElement('style');st.textContent='textarea{font:14px Inter,system-ui,sans-serif;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%;resize:vertical}.gst{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line)}.gst input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}.gst .gt{flex:1;min-width:140px}.gst select{width:72px}.gst input[type=date]{width:140px}.asp-g .tile .badge.tb{z-index:2}.hue{-webkit-appearance:none;appearance:none;height:14px;min-height:14px;padding:0;border-radius:7px;border:1px solid var(--line);background:linear-gradient(90deg,hsl(0,50%,48%),hsl(60,50%,48%),hsl(120,50%,48%),hsl(180,50%,48%),hsl(240,50%,48%),hsl(300,50%,48%),hsl(360,50%,48%))}.hue::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid var(--ink);cursor:pointer}.hue::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--ink)}.hr{display:flex;gap:10px;align-items:center}.hr .hue{flex:1}.gk{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:4px 0 8px}.gk label{flex:0 1 110px}.tg{display:grid;grid-template-columns:repeat(7,30px);gap:4px;margin:4px 0 10px}.tick{width:30px;height:30px;min-height:0;border:1px solid var(--line);background:var(--bg);color:var(--mute);border-radius:6px;font:500 11px var(--mono);cursor:pointer;padding:0}.tg i{font:500 10px var(--mono);color:var(--mute);text-align:center;font-style:normal}.tick:disabled{opacity:.35;cursor:default}.tick.on{background:var(--acc);color:var(--on);border-color:var(--acc)}.gst select.gk2{width:92px}';document.head.appendChild(st);
 
 /* ---------- start ---------- */
 if(SPACE==='goals'&&!/^gl/.test(view)&&view!=='landing')view='gldash';
