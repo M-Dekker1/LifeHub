@@ -1,7 +1,7 @@
 // LifeHub service worker: keeps the app working offline.
 // Bump CACHE when you want every device to refetch all files.
-const CACHE = 'lifehub-v2.3.0';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-192.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon-32.png', './goals.js'];
+const CACHE = 'lifehub-v2.6.0';
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-192.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon-32.png', './goals.js', './travel.js', './world.json', './cities.json'];
 
 self.addEventListener('install', (e) => {
   // Cache each file on its own so one missing file (e.g. an icon) cannot break the whole install.
